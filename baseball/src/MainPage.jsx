@@ -1,5 +1,5 @@
 import { seedBaseball, getBaseballPlayers, useQuery } from 'wasp/client/operations'
-import { generatePlayerDescription } from 'wasp/client/operations'
+import { generatePlayerDescription, updatePlayer } from 'wasp/client/operations'
 import { useState, useMemo } from 'react'
 import './Main.css'
 
@@ -49,6 +49,155 @@ const Modal = ({ isOpen, onClose, children }) => {
   )
 }
 
+const EditPlayerForm = ({ player, onSave, onCancel }) => {
+  const [formData, setFormData] = useState({
+    playerName: player.playerName,
+    position: player.position,
+    games: player.games,
+    atBat: player.atBat,
+    runs: player.runs,
+    hits: player.hits,
+    doubles: player.doubles,
+    thirdBaseman: player.thirdBaseman,
+    homeRun: player.homeRun,
+    runBattedIn: player.runBattedIn,
+    walks: player.walks,
+    strikeouts: player.strikeouts,
+    stolenBase: player.stolenBase,
+    caughtStealing: player.caughtStealing,
+    avg: player.avg,
+    onBasePercentage: player.onBasePercentage,
+    sluggingPercentage: player.sluggingPercentage,
+    onBasePlusSlugging: player.onBasePlusSlugging
+  })
+
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    let processedValue = value
+    
+    // Convert numeric fields
+    if (name !== 'playerName' && name !== 'position' && name !== 'caughtStealing') {
+      processedValue = parseFloat(value)
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      [name]: processedValue
+    }))
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    await onSave({ id: player.id, ...formData })
+  }
+
+  return (
+    <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1rem' }}>
+      <h2>Edit Player: {player.playerName}</h2>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <div>
+          <label>Name:</label>
+          <input
+            type="text"
+            name="playerName"
+            value={formData.playerName}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
+        
+        <div>
+          <label>Position:</label>
+          <input
+            type="text"
+            name="position"
+            value={formData.position}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
+
+        <div>
+          <label>Games:</label>
+          <input
+            type="number"
+            name="games"
+            value={formData.games}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
+
+        <div>
+          <label>At Bat:</label>
+          <input
+            type="number"
+            name="atBat"
+            value={formData.atBat}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
+
+        <div>
+          <label>Hits:</label>
+          <input
+            type="number"
+            name="hits"
+            value={formData.hits}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
+
+        <div>
+          <label>Home Runs:</label>
+          <input
+            type="number"
+            name="homeRun"
+            value={formData.homeRun}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
+
+        <div>
+          <label>RBIs:</label>
+          <input
+            type="number"
+            name="runBattedIn"
+            value={formData.runBattedIn}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
+
+        <div>
+          <label>AVG:</label>
+          <input
+            type="number"
+            step="0.001"
+            name="avg"
+            value={formData.avg}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+        <button type="button" onClick={onCancel} style={buttonStyle}>
+          Cancel
+        </button>
+        <button type="submit" style={{ ...buttonStyle, backgroundColor: '#4CAF50', color: 'white' }}>
+          Save Changes
+        </button>
+      </div>
+    </form>
+  )
+}
+
 export const MainPage = () => {
   const { data: players, isLoading, error } = useQuery(getBaseballPlayers)
   const [sortField, setSortField] = useState('hitsPerSeason')
@@ -56,6 +205,7 @@ export const MainPage = () => {
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [playerDescription, setPlayerDescription] = useState('')
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false)
+  const [editingPlayer, setEditingPlayer] = useState(null)
 
   const handleSeed = async () => {
     try {
@@ -86,6 +236,21 @@ export const MainPage = () => {
       setPlayerDescription('Error generating player description. Please try again.')
     } finally {
       setIsGeneratingDescription(false)
+    }
+  }
+
+  const handleEditClick = (e, player) => {
+    e.stopPropagation() // Prevent triggering the row click
+    setEditingPlayer(player)
+  }
+
+  const handleSaveEdit = async (updatedPlayer) => {
+    try {
+      await updatePlayer(updatedPlayer)
+      setEditingPlayer(null)
+      // The query will automatically refetch due to the entities configuration
+    } catch (error) {
+      window.alert('Error updating player: ' + error.message)
     }
   }
 
@@ -170,6 +335,7 @@ export const MainPage = () => {
                   <th style={tableHeaderStyle}>OBP</th>
                   <th style={tableHeaderStyle}>SLG</th>
                   <th style={tableHeaderStyle}>OPS</th>
+                  <th style={tableHeaderStyle}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -196,6 +362,21 @@ export const MainPage = () => {
                     <td style={tableCellStyle}>{player.onBasePercentage.toFixed(3)}</td>
                     <td style={tableCellStyle}>{player.sluggingPercentage.toFixed(3)}</td>
                     <td style={tableCellStyle}>{player.onBasePlusSlugging.toFixed(3)}</td>
+                    <td style={tableCellStyle}>
+                      <button
+                        onClick={(e) => handleEditClick(e, player)}
+                        style={{
+                          padding: '4px 8px',
+                          backgroundColor: '#2196F3',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Edit
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -224,6 +405,19 @@ export const MainPage = () => {
             </div>
           )}
         </Modal>
+
+        <Modal
+          isOpen={!!editingPlayer}
+          onClose={() => setEditingPlayer(null)}
+        >
+          {editingPlayer && (
+            <EditPlayerForm
+              player={editingPlayer}
+              onSave={handleSaveEdit}
+              onCancel={() => setEditingPlayer(null)}
+            />
+          )}
+        </Modal>
       </main>
     </div>
   )
@@ -239,4 +433,20 @@ const tableHeaderStyle = {
 const tableCellStyle = {
   padding: '12px',
   textAlign: 'left'
+}
+
+const inputStyle = {
+  width: '100%',
+  padding: '8px',
+  border: '1px solid #ddd',
+  borderRadius: '4px',
+  marginTop: '4px'
+}
+
+const buttonStyle = {
+  padding: '8px 16px',
+  border: '1px solid #ddd',
+  borderRadius: '4px',
+  cursor: 'pointer',
+  backgroundColor: 'white'
 }

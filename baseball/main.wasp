@@ -24,3 +24,8 @@ action generatePlayerDescription {
   fn: import { generatePlayerDescription } from "@src/playerDescription.ts",
   entities: [BaseballPlayer]
 }
+
+action updatePlayer {
+  fn: import { updatePlayer } from "@src/actions/updatePlayer.ts",
+  entities: [BaseballPlayer]
+}
