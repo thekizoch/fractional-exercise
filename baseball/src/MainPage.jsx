@@ -1,11 +1,61 @@
 import { seedBaseball, getBaseballPlayers, useQuery } from 'wasp/client/operations'
+import { generatePlayerDescription } from 'wasp/client/operations'
 import { useState, useMemo } from 'react'
 import './Main.css'
+
+const Modal = ({ isOpen, onClose, children }) => {
+  if (!isOpen) return null
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000
+    }} onClick={onClose}>
+      <div style={{
+        backgroundColor: 'white',
+        padding: '2rem',
+        borderRadius: '8px',
+        maxWidth: '600px',
+        width: '90%',
+        maxHeight: '80vh',
+        overflow: 'auto',
+        position: 'relative'
+      }} onClick={e => e.stopPropagation()}>
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: '1rem',
+            right: '1rem',
+            border: 'none',
+            background: 'none',
+            fontSize: '1.5rem',
+            cursor: 'pointer'
+          }}
+        >
+          ×
+        </button>
+        {children}
+      </div>
+    </div>
+  )
+}
 
 export const MainPage = () => {
   const { data: players, isLoading, error } = useQuery(getBaseballPlayers)
   const [sortField, setSortField] = useState('hitsPerSeason')
   const [sortDirection, setSortDirection] = useState('desc')
+  const [selectedPlayer, setSelectedPlayer] = useState(null)
+  const [playerDescription, setPlayerDescription] = useState('')
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false)
 
   const handleSeed = async () => {
     try {
@@ -18,6 +68,25 @@ export const MainPage = () => {
 
   const calculateHitsPerSeason = (hits, games) => {
     return (hits / (games / 162)).toFixed(1)
+  }
+
+  const handlePlayerClick = async (player) => {
+    setSelectedPlayer(player)
+    setIsGeneratingDescription(true)
+    try {
+      const description = await generatePlayerDescription({
+        playerName: player.playerName,
+        stats: {
+          ...player,
+          hitsPerSeason: parseFloat(calculateHitsPerSeason(player.hits, player.games))
+        }
+      })
+      setPlayerDescription(description)
+    } catch (error) {
+      setPlayerDescription('Error generating player description. Please try again.')
+    } finally {
+      setIsGeneratingDescription(false)
+    }
   }
 
   const sortedPlayers = useMemo(() => {
@@ -105,7 +174,15 @@ export const MainPage = () => {
               </thead>
               <tbody>
                 {sortedPlayers.map((player, index) => (
-                  <tr key={player.id} style={{ borderBottom: '1px solid #ddd' }}>
+                  <tr 
+                    key={player.id} 
+                    style={{ 
+                      borderBottom: '1px solid #ddd',
+                      cursor: 'pointer',
+                      backgroundColor: selectedPlayer?.id === player.id ? '#f0f0f0' : 'transparent'
+                    }}
+                    onClick={() => handlePlayerClick(player)}
+                  >
                     <td style={tableCellStyle}>{index + 1}</td>
                     <td style={tableCellStyle}>{player.playerName}</td>
                     <td style={tableCellStyle}>{player.position}</td>
@@ -125,6 +202,28 @@ export const MainPage = () => {
             </table>
           </div>
         )}
+
+        <Modal 
+          isOpen={!!selectedPlayer} 
+          onClose={() => {
+            setSelectedPlayer(null)
+            setPlayerDescription('')
+          }}
+        >
+          {selectedPlayer && (
+            <div>
+              <h2 style={{ marginTop: 0 }}>{selectedPlayer.playerName}</h2>
+              <p><strong>Position:</strong> {selectedPlayer.position}</p>
+              <div style={{ marginTop: '1rem' }}>
+                {isGeneratingDescription ? (
+                  <div>Generating player description...</div>
+                ) : (
+                  <div style={{ whiteSpace: 'pre-wrap' }}>{playerDescription}</div>
+                )}
+              </div>
+            </div>
+          )}
+        </Modal>
       </main>
     </div>
   )

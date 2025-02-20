@@ -19,3 +19,8 @@ query getBaseballPlayers {
   fn: import { getBaseballPlayers } from "@src/queries.ts",
   entities: [BaseballPlayer]
 }
+
+action generatePlayerDescription {
+  fn: import { generatePlayerDescription } from "@src/playerDescription.ts",
+  entities: [BaseballPlayer]
+}
