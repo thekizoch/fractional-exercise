@@ -14,3 +14,8 @@ action seedBaseball {
   fn: import { seedBaseballData } from "@src/seeder.ts",
   entities: [BaseballPlayer]
 }
+
+query getBaseballPlayers {
+  fn: import { getBaseballPlayers } from "@src/queries.ts",
+  entities: [BaseballPlayer]
+}
