@@ -1,0 +1,36 @@
+datasource db {
+  provider = "sqlite"
+  // Wasp requires that the url is set to the DATABASE_URL environment variable.
+  url      = env("DATABASE_URL")
+}
+
+// Wasp requires the `prisma-client-js` generator to be present.
+generator client {
+  provider = "prisma-client-js"
+}
+
+model BaseballPlayer {
+  id                    Int      @id @default(autoincrement())
+  playerName           String   @map("player_name")
+  position             String
+  games                Int
+  atBat               Int      @map("at_bat")
+  runs                 Int
+  hits                 Int
+  doubles              Int      @map("double_2b") // "Double (2B)" in API
+  thirdBaseman        Int      @map("third_baseman")
+  homeRun             Int      @map("home_run")
+  runBattedIn         Int      @map("run_batted_in")
+  walks               Int      @map("a_walk") // "a walk" in API
+  strikeouts          Int
+  stolenBase          Int      @map("stolen_base")
+  caughtStealing      String?  @map("caught_stealing") // Some values are "--"
+  avg                 Float    @map("batting_average")
+  onBasePercentage    Float    @map("on_base_percentage")
+  sluggingPercentage  Float    @map("slugging_percentage")
+  onBasePlusSlugging  Float    @map("on_base_plus_slugging")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("baseball_players")
+}

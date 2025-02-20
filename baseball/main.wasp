@@ -1,0 +1,16 @@
+app baseball {
+  wasp: {
+    version: "^0.16.0"
+  },
+  title: "baseball"
+}
+
+route RootRoute { path: "/", to: MainPage }
+page MainPage {
+  component: import { MainPage } from "@src/MainPage"
+}
+
+action seedBaseball {
+  fn: import { seedBaseballData } from "@src/seeder.ts",
+  entities: [BaseballPlayer]
+}
