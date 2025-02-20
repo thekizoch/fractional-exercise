@@ -1,5 +1,3 @@
-import { type UpdatePlayer } from 'wasp/server/operations'
-
 type UpdatePlayerInput = {
   id: number
   playerName: string
@@ -22,7 +20,7 @@ type UpdatePlayerInput = {
   onBasePlusSlugging: number
 }
 
-export const updatePlayer: UpdatePlayer<UpdatePlayerInput, void> = async (args, context) => {
+export const updatePlayer = async (args: UpdatePlayerInput, context: any) => {
   if (!context.entities) {
     throw new Error('No database context available')
   }
